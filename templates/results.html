@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block content %}
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<h2 class="mb-4">Prediction Results</h2>
+
+<!-- ================= SUMMARY CARDS ================= -->
+
+<div class="row mb-4">
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Total Customers</h6>
+                <h3>{{ total }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm border-danger">
+            <div class="card-body">
+                <h6 class="text-danger">High Risk</h6>
+                <h3 class="text-danger">{{ high }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm border-warning">
+            <div class="card-body">
+                <h6 class="text-warning">Medium Risk</h6>
+                <h3 class="text-warning">{{ medium }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm border-success">
+            <div class="card-body">
+                <h6 class="text-success">Low Risk</h6>
+                <h3 class="text-success">{{ low }}</h3>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ================= CHARTS ================= -->
+
+<div class="row mb-5">
+
+    <!-- Donut Chart -->
+    <div class="col-md-6">
+        <div class="card shadow-sm p-3">
+            <h6 class="mb-3 text-center">Risk Distribution</h6>
+            <div id="donutChart"></div>
+        </div>
+    </div>
+
+    <!-- Bar Chart -->
+    <div class="col-md-6">
+        <div class="card shadow-sm p-3">
+            <h6 class="mb-3 text-center">Risk Count Comparison</h6>
+            <div id="barChart"></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ================= AI STRATEGY ================= -->
+
+<div class="card shadow-sm p-4 mb-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5>AI Risk Strategy</h5>
+        <button id="generateAI" class="btn btn-dark btn-sm">
+            Generate AI Strategy
+        </button>
+    </div>
+
+    <div id="aiContent" class="text-muted">
+        Click the button to generate AI-driven insights.
+    </div>
+
+</div>
+<button id="downloadPDF" class="btn btn-outline-primary btn-sm mt-3">
+    Download PDF Report
+</button>
+
+
+<p class="text-muted">
+Showing first 10 rows out of {{ total }} records.
+</p>
+
+<div class="mb-3">
+    <a href="/download/csv" class="btn btn-primary">
+        Download Full CSV
+    </a>
+</div>
+
+<!-- ================= TABLE ================= -->
+
+<div class="table-responsive">
+    <table class="table table-bordered table-striped table-hover align-middle">
+
+        <thead class="table-dark">
+            <tr>
+                {% for col in columns %}
+                    <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for row in tables %}
+                <tr>
+                    {% for col in columns %}
+
+                        {% if col == "Risk_Level" %}
+                            <td>
+                                {% if row[col] == "High Risk" %}
+                                    <span class="badge bg-danger">High Risk</span>
+                                {% elif row[col] == "Medium Risk" %}
+                                    <span class="badge bg-warning text-dark">Medium Risk</span>
+                                {% else %}
+                                    <span class="badge bg-success">Low Risk</span>
+                                {% endif %}
+                            </td>
+
+                        {% elif col == "Churn_Probability (%)" %}
+                            <td><strong>{{ row[col] }}%</strong></td>
+
+                        {% else %}
+                            <td>{{ row[col] }}</td>
+
+                        {% endif %}
+
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+
+    </table>
+</div>
+
+<!-- ================= JAVASCRIPT ================= -->
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<script>
+
+var riskValues = [
+    {{ high|int }},
+    {{ medium|int }},
+    {{ low|int }}
+];
+
+var riskLabels = ['High Risk', 'Medium Risk', 'Low Risk'];
+
+Plotly.newPlot('donutChart', [{
+    values: riskValues,
+    labels: riskLabels,
+    type: 'pie',
+    hole: 0.6
+}], {height:350}, {responsive:true});
+
+Plotly.newPlot('barChart', [{
+    x: riskLabels,
+    y: riskValues,
+    type: 'bar'
+}], {height:350}, {responsive:true});
+
+// ===== AI BUTTON =====
+
+document.getElementById("generateAI").addEventListener("click", function() {
+
+    fetch("/generate_ai", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            total: {{ total }},
+            high: {{ high }},
+            medium: {{ medium }},
+            low: {{ low }}
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        window.latestAISummary = data;
+
+        document.getElementById("aiContent").innerHTML = `
+            <h6>Executive Summary</h6>
+            <p>${data.summary || ""}</p>
+        `;
+    });
+});
+
+// ===== PDF BUTTON =====
+
+async function captureChartImage() {
+    return await Plotly.toImage(
+        document.getElementById('donutChart'),
+        {format:'png', width:800, height:500}
+    );
+}
+
+document.getElementById("downloadPDF").addEventListener("click", async function() {
+
+    const chartImage = await captureChartImage();
+
+    fetch("/download/pdf", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            total: {{ total }},
+            high: {{ high }},
+            medium: {{ medium }},
+            low: {{ low }},
+            ai_summary: window.latestAISummary || {},
+            chart_image: chartImage
+        })
+    })
+    .then(response => response.blob())
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "custora_ai_report.pdf";
+        a.click();
+    });
+});
+
+</script>
+
+
+{% endblock %}
