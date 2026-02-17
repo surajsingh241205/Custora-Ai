@@ -4,7 +4,8 @@ from config import Config
 from extensions import db, login_manager
 from dotenv import load_dotenv
 load_dotenv()
-
+print("Loaded Key:", os.getenv("GROQ_API_KEY"))
+load_dotenv(override=True)
 
 def create_app():
     app = Flask(__name__)

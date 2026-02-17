@@ -33,7 +33,7 @@ def generate_pdf_report(
 
     # ================= HEADER =================
 
-    logo_path = os.path.join("static", "images", "2.png")
+    logo_path = os.path.join("static", "images", "light-logo.png")
 
     if os.path.exists(logo_path):
         elements.append(Image(logo_path, width=3.15 * inch, height=0.6 * inch))

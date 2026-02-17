@@ -1673,7 +1673,7 @@
             <!-- Actions -->
             <div class="nav-actions">
                 <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme"></button>
-                <a href="#demo-video" class="btn btn-primary btn-sm">View Demo</a>
+                <a href="{{ url_for('main.upload') }}" class="btn btn-primary btn-sm">View Demo</a>
                 <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">
                     <span></span>
                     <span></span>
@@ -1720,8 +1720,8 @@
 
 
                 <div class="hero-cta fade-up" style="transition-delay:0.3s">
-                    <a href="#demo-video" class="btn btn-primary">
-                        <span>View Demo</span>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary">
+                        <span>Register Now</span>
                         <span class="btn-icon">
                             <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                                 <path d="M2 8L8 2M8 2H3M8 2V7" stroke="white" stroke-width="1.5" stroke-linecap="round"
@@ -1729,12 +1729,12 @@
                             </svg>
                         </span>
                     </a>
-                    <a href="#demo-video" class="btn btn-ghost">
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-ghost">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                             <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2" />
                             <path d="M6.5 5.5L10.5 8L6.5 10.5V5.5Z" fill="currentColor" />
                         </svg>
-                        Watch Demo
+                        Login
                     </a>
                 </div>
 
