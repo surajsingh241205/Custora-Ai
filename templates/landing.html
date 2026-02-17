@@ -1,0 +1,2552 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Custora AI — Predict Churn Before It Happens</title>
+
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/4-removebg-preview.png') }}">
+    <!-- Google Fonts: Plus Jakarta Sans — Premium geometric, heavy weights available -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap"
+        rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        /* =============================================
+       DESIGN TOKENS & CUSTOM PROPERTIES
+    ============================================= */
+        :root {
+            /* Brand gradient: Pink → Purple → Violet */
+            --grad-start: #f72585;
+            --grad-mid: #7b2d8b;
+            --grad-end: #4361ee;
+            --gradient: linear-gradient(135deg, #f72585 0%, #9b2dca 45%, #4361ee 100%);
+            --gradient-text: linear-gradient(135deg, #f72585 0%, #b744e0 50%, #4361ee 100%);
+
+            /* Typography */
+            --font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            --font-hero: 800;
+            --font-heading: 700;
+            --font-body: 400;
+            --font-medium: 500;
+
+            /* Spacing scale (8px base) */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 40px;
+            --space-2xl: 64px;
+            --space-3xl: 96px;
+            --space-4xl: 128px;
+
+            /* Border radius */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --radius-xl: 32px;
+            --radius-pill: 999px;
+
+            /* Animation */
+            --transition: 300ms ease;
+        }
+
+        /* ── DARK MODE (default) ── */
+        [data-theme="dark"] {
+            --bg-primary: #0d0d12;
+            --bg-secondary: #12121a;
+            --bg-surface: #1a1a26;
+            --bg-elevated: #20202e;
+            --border-color: rgba(255, 255, 255, 0.07);
+            --border-accent: rgba(247, 37, 133, 0.25);
+
+            --text-primary: #f0eff6;
+            --text-secondary: #9896b0;
+            --text-muted: #5e5c78;
+
+            --shadow-card: 0 4px 32px rgba(0, 0, 0, 0.45);
+            --shadow-glow: 0 0 40px rgba(155, 45, 202, 0.18);
+            --shadow-cta: 0 8px 32px rgba(247, 37, 133, 0.35);
+
+            --grid-color: rgba(255, 255, 255, 0.024);
+            --noise-opacity: 0.03;
+        }
+
+        /* ── LIGHT MODE ── */
+        [data-theme="light"] {
+            --bg-primary: #f6f5fb;
+            --bg-secondary: #eeedf6;
+            --bg-surface: #ffffff;
+            --bg-elevated: #f2f0fa;
+            --border-color: rgba(0, 0, 0, 0.07);
+            --border-accent: rgba(247, 37, 133, 0.2);
+
+            --text-primary: #111018;
+            --text-secondary: #4e4c65;
+            --text-muted: #9896b0;
+
+            --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.09);
+            --shadow-glow: 0 0 40px rgba(155, 45, 202, 0.1);
+            --shadow-cta: 0 8px 32px rgba(247, 37, 133, 0.28);
+
+            --grid-color: rgba(0, 0, 0, 0.032);
+            --noise-opacity: 0.02;
+        }
+
+        /* =============================================
+       RESET & BASE
+    ============================================= */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            font-size: 16px;
+        }
+
+        body {
+            font-family: var(--font-family);
+            font-weight: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: background var(--transition), color var(--transition);
+            overflow-x: hidden;
+        }
+
+        /* Grid texture background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Ambient glow orbs */
+        body::after {
+            content: '';
+            position: fixed;
+            top: -30vh;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80vw;
+            height: 60vh;
+            background: radial-gradient(ellipse at center,
+                    rgba(155, 45, 202, 0.12) 0%,
+                    rgba(247, 37, 133, 0.06) 50%,
+                    transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+            transition: opacity var(--transition);
+        }
+
+        [data-theme="light"] body::after {
+            opacity: 0.5;
+        }
+
+        /* ── UTILITY ── */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-xl);
+            position: relative;
+            z-index: 1;
+        }
+
+        .gradient-text {
+            background: var(--gradient-text);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        section {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Scroll-triggered fade in */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(28px);
+            transition: opacity 0.65s ease, transform 0.65s ease;
+        }
+
+        .fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Staggered children */
+        .stagger-children>* {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.55s ease, transform 0.55s ease;
+        }
+
+        .stagger-children.visible>*:nth-child(1) {
+            transition-delay: 0s;
+            opacity: 1;
+            transform: none;
+        }
+
+        .stagger-children.visible>*:nth-child(2) {
+            transition-delay: 0.08s;
+            opacity: 1;
+            transform: none;
+        }
+
+        .stagger-children.visible>*:nth-child(3) {
+            transition-delay: 0.16s;
+            opacity: 1;
+            transform: none;
+        }
+
+        .stagger-children.visible>*:nth-child(4) {
+            transition-delay: 0.24s;
+            opacity: 1;
+            transform: none;
+        }
+
+        .stagger-children.visible>*:nth-child(5) {
+            transition-delay: 0.32s;
+            opacity: 1;
+            transform: none;
+        }
+
+        .stagger-children.visible>*:nth-child(6) {
+            transition-delay: 0.40s;
+            opacity: 1;
+            transform: none;
+        }
+
+        .stagger-children.visible>*:nth-child(7) {
+            transition-delay: 0.48s;
+            opacity: 1;
+            transform: none;
+        }
+
+        .stagger-children.visible>*:nth-child(8) {
+            transition-delay: 0.56s;
+            opacity: 1;
+            transform: none;
+        }
+
+        .stagger-children.visible>*:nth-child(9) {
+            transition-delay: 0.64s;
+            opacity: 1;
+            transform: none;
+        }
+
+        /* =============================================
+       NAVIGATION
+    ============================================= */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: var(--space-md) 0;
+            transition: background var(--transition), backdrop-filter var(--transition), border-color var(--transition);
+        }
+
+        nav.scrolled {
+            background: color-mix(in srgb, var(--bg-primary) 85%, transparent);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-xl);
+        }
+
+        /* Logo */
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            text-decoration: none;
+        }
+
+        .logo-mark {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--gradient);
+            display: grid;
+            place-items: center;
+            box-shadow: 0 4px 16px rgba(247, 37, 133, 0.4);
+        }
+
+        .logo-mark svg {
+            width: 20px;
+            height: 20px;
+            fill: white;
+        }
+
+        .logo-wordmark {
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: var(--gradient-text);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-wordmark span {
+            -webkit-text-fill-color: var(--text-secondary);
+            background: none;
+            font-weight: 500;
+            font-size: 0.85em;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-left: 2px;
+        }
+
+        /* Nav links */
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xl);
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            transition: color var(--transition);
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        /* Nav right actions */
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            width: 44px;
+            height: 24px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-pill);
+            cursor: pointer;
+            position: relative;
+            transition: background var(--transition), border-color var(--transition);
+            flex-shrink: 0;
+        }
+
+        .theme-toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--gradient);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 2px 6px rgba(247, 37, 133, 0.5);
+        }
+
+        [data-theme="light"] .theme-toggle::after {
+            transform: translateX(20px);
+        }
+
+        /* =============================================
+       BUTTONS
+    ============================================= */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: 12px 24px;
+            border-radius: var(--radius-pill);
+            font-family: var(--font-family);
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            cursor: pointer;
+            border: none;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+            box-shadow: var(--shadow-cta);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(247, 37, 133, 0.45);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--border-accent);
+            background: var(--bg-surface);
+            transform: translateY(-2px);
+        }
+
+        .btn-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: grid;
+            place-items: center;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.8rem;
+        }
+
+        /* =============================================
+       SECTION HEADINGS
+    ============================================= */
+        .section-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: var(--space-md);
+        }
+
+        .section-label::before {
+            content: '';
+            display: block;
+            width: 16px;
+            height: 2px;
+            border-radius: 1px;
+            background: var(--gradient);
+        }
+
+        .section-title {
+            font-size: clamp(2rem, 4vw, 2.75rem);
+            font-weight: 700;
+            letter-spacing: -0.04em;
+            line-height: 1.15;
+            color: var(--text-primary);
+        }
+
+        .section-sub {
+            margin-top: var(--space-md);
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            max-width: 560px;
+            line-height: 1.65;
+        }
+
+        /* =============================================
+       HERO SECTION
+    ============================================= */
+        #hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: calc(var(--space-4xl) + 80px) 0 var(--space-4xl);
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .hero-content {
+            width: 100%;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: 6px 14px 6px 8px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-pill);
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-xl);
+            letter-spacing: 0.02em;
+        }
+
+        .hero-badge-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--gradient);
+            display: grid;
+            place-items: center;
+            flex-shrink: 0;
+        }
+
+        .hero-badge-dot::after {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: white;
+        }
+
+        .hero-h1 {
+            font-size: clamp(52px, 8vw, 88px);
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            line-height: 1.05;
+            color: var(--text-primary);
+            max-width: 900px;
+            margin: 0 auto var(--space-xl);
+        }
+
+        .hero-h1 .word-churn {
+            background: var(--gradient-text);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: inline-block;
+        }
+
+        .hero-sub {
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            color: var(--text-secondary);
+            max-width: 580px;
+            margin: 0 auto var(--space-xl);
+            line-height: 1.65;
+            font-weight: 400;
+        }
+
+        .hero-cta {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-md);
+            flex-wrap: wrap;
+        }
+
+        /* Hero metrics strip */
+        .hero-metrics {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-xl);
+            margin-top: var(--space-3xl);
+            padding-top: var(--space-xl);
+            border-top: 1px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+
+        .hero-metric {
+            text-align: center;
+        }
+
+        .hero-metric-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            background: var(--gradient-text);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: block;
+        }
+
+        .hero-metric-label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        .metric-divider {
+            width: 1px;
+            height: 36px;
+            background: var(--border-color);
+        }
+
+        /* =============================================
+       MODEL OVERVIEW
+    ============================================= */
+        #model-overview {
+            padding: var(--space-4xl) 0;
+        }
+
+        .model-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-xl);
+            margin-top: var(--space-2xl);
+        }
+
+        .model-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            transition: border-color var(--transition), box-shadow var(--transition), transform 0.2s ease;
+            cursor: default;
+        }
+
+        .model-card:hover {
+            border-color: var(--border-accent);
+            box-shadow: var(--shadow-glow);
+            transform: translateY(-3px);
+        }
+
+        .model-card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, rgba(247, 37, 133, 0.12), rgba(67, 97, 238, 0.12));
+            border: 1px solid var(--border-accent);
+            display: grid;
+            place-items: center;
+            margin-bottom: var(--space-lg);
+            font-size: 1.4rem;
+        }
+
+        .model-card h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: var(--space-sm);
+            color: var(--text-primary);
+        }
+
+        .model-card p {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            line-height: 1.65;
+        }
+
+        .model-card .tag {
+            display: inline-block;
+            padding: 3px 10px;
+            background: rgba(247, 37, 133, 0.1);
+            border: 1px solid rgba(247, 37, 133, 0.2);
+            border-radius: var(--radius-pill);
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #f72585;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-top: var(--space-md);
+        }
+
+        /* Full-width highlight card */
+        .model-card-wide {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-xl);
+            background: linear-gradient(135deg,
+                    rgba(247, 37, 133, 0.06) 0%,
+                    rgba(155, 45, 202, 0.06) 50%,
+                    rgba(67, 97, 238, 0.06) 100%);
+            border-color: var(--border-accent);
+        }
+
+        .model-card-wide .model-card-icon {
+            flex-shrink: 0;
+            width: 56px;
+            height: 56px;
+        }
+
+        /* =============================================
+       PERFORMANCE SECTION
+    ============================================= */
+        #performance {
+            padding: var(--space-4xl) 0;
+        }
+
+        .perf-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-2xl);
+            margin-top: var(--space-2xl);
+            align-items: center;
+        }
+
+        .perf-metrics {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-lg);
+        }
+
+        .perf-metric-row {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-xs);
+        }
+
+        .perf-metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .perf-metric-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .perf-metric-value {
+            font-size: 0.9rem;
+            font-weight: 800;
+            background: var(--gradient-text);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .perf-bar-track {
+            height: 6px;
+            background: var(--bg-elevated);
+            border-radius: var(--radius-pill);
+            overflow: hidden;
+        }
+
+        .perf-bar-fill {
+            height: 100%;
+            border-radius: var(--radius-pill);
+            background: var(--gradient);
+            width: 0;
+            transition: width 1.2s cubic-bezier(0.34, 1.2, 0.64, 1);
+        }
+
+        .perf-bar-fill.animated {
+            width: var(--target-width);
+        }
+
+        .perf-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-md);
+        }
+
+        .perf-big-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            text-align: center;
+            transition: border-color var(--transition);
+        }
+
+        .perf-big-card:hover {
+            border-color: var(--border-accent);
+        }
+
+        .perf-big-num {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            background: var(--gradient-text);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: block;
+        }
+
+        .perf-big-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-top: var(--space-xs);
+        }
+
+        /* =============================================
+       ARCHITECTURE FLOW
+    ============================================= */
+        #architecture {
+            padding: var(--space-2xl) 0 var(--space-3xl);
+        }
+
+        .arch-flow {
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            margin-top: var(--space-xl);
+            overflow-x: auto;
+            padding-bottom: var(--space-sm);
+        }
+
+        .arch-step {
+            flex: 1;
+            min-width: 140px;
+            display: flex;
+            align-items: stretch;
+        }
+
+        .arch-card {
+            flex: 1;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: var(--space-md) var(--space-sm);
+            text-align: center;
+            transition: border-color var(--transition), box-shadow var(--transition), transform 0.2s ease;
+            cursor: default;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .arch-card:hover {
+            border-color: var(--border-accent);
+            box-shadow: 0 0 24px rgba(155, 45, 202, 0.15);
+            transform: translateY(-4px);
+        }
+
+        .arch-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, rgba(247, 37, 133, 0.15), rgba(67, 97, 238, 0.15));
+            display: grid;
+            place-items: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .arch-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+            line-height: 1.3;
+        }
+
+        .arch-sub {
+            font-size: 0.64rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* Connector arrows */
+        .arch-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 4px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .arch-arrow svg {
+            width: 18px;
+            height: 18px;
+            opacity: 0.4;
+        }
+
+        /* =============================================
+       FEATURES SECTION
+    ============================================= */
+        #features {
+            padding: var(--space-4xl) 0;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-lg);
+            margin-top: var(--space-2xl);
+        }
+
+        .feature-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            transition: border-color var(--transition), box-shadow var(--transition), transform 0.2s ease;
+            cursor: default;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--gradient);
+            opacity: 0;
+            transition: opacity var(--transition);
+        }
+
+        .feature-card:hover {
+            border-color: var(--border-accent);
+            box-shadow: var(--shadow-glow);
+            transform: translateY(-4px);
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-icon {
+            font-size: 1.6rem;
+            margin-bottom: var(--space-md);
+            display: block;
+        }
+
+        .feature-card h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+            margin-bottom: var(--space-sm);
+        }
+
+        .feature-card p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.65;
+        }
+
+        /* =============================================
+       SCREENSHOTS
+    ============================================= */
+        #screenshots {
+            padding: var(--space-4xl) 0;
+        }
+
+        .screenshots-grid {
+            display: grid;
+            grid-template-columns: 1.6fr 1fr;
+            gap: var(--space-lg);
+            margin-top: var(--space-2xl);
+        }
+
+        .screenshot-frame {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-md);
+            box-shadow: var(--shadow-card);
+            transition: border-color var(--transition), box-shadow var(--transition), transform 0.25s ease;
+        }
+
+        .screenshot-frame:hover {
+            border-color: var(--border-accent);
+            box-shadow: var(--shadow-glow), var(--shadow-card);
+            transform: translateY(-4px);
+        }
+
+        /* Browser chrome decoration */
+        .browser-chrome {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px var(--space-md);
+            border-bottom: 1px solid var(--border-color);
+            margin: calc(-1 * var(--space-md)) calc(-1 * var(--space-md)) var(--space-md);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            background: var(--bg-elevated);
+        }
+
+        .chrome-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+        }
+
+        .chrome-dot:nth-child(1) {
+            background: #f72585;
+            border-color: transparent;
+        }
+
+        .chrome-dot:nth-child(2) {
+            background: #e0b020;
+            border-color: transparent;
+        }
+
+        .chrome-dot:nth-child(3) {
+            background: #22c55e;
+            border-color: transparent;
+        }
+
+        .chrome-bar {
+            flex: 1;
+            height: 18px;
+            background: var(--bg-surface);
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--border-color);
+            margin-left: var(--space-sm);
+        }
+
+        /* Mock dashboard UI */
+        .mock-dashboard {
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            background: var(--bg-elevated);
+            min-height: 260px;
+            padding: var(--space-lg);
+        }
+
+        .mock-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-lg);
+        }
+
+        .mock-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .mock-badge {
+            padding: 3px 10px;
+            background: rgba(247, 37, 133, 0.12);
+            border: 1px solid rgba(247, 37, 133, 0.2);
+            border-radius: var(--radius-pill);
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #f72585;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        /* Fake chart bars */
+        .mock-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+            height: 80px;
+            margin-bottom: var(--space-md);
+        }
+
+        .mock-bar {
+            flex: 1;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.8s cubic-bezier(0.34, 1.2, 0.64, 1);
+        }
+
+        .mock-bar-grad {
+            background: var(--gradient);
+        }
+
+        .mock-bar-dim {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Fake user rows */
+        .mock-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mock-row {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: 8px var(--space-md);
+            background: var(--bg-surface);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+        }
+
+        .mock-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--gradient);
+            flex-shrink: 0;
+            opacity: 0.7;
+        }
+
+        .mock-row-info {
+            flex: 1;
+        }
+
+        .mock-row-name {
+            height: 8px;
+            width: 80px;
+            background: var(--text-muted);
+            border-radius: 4px;
+            opacity: 0.4;
+            margin-bottom: 4px;
+        }
+
+        .mock-row-sub {
+            height: 6px;
+            width: 50px;
+            background: var(--text-muted);
+            border-radius: 3px;
+            opacity: 0.2;
+        }
+
+        .mock-risk {
+            padding: 2px 8px;
+            border-radius: var(--radius-pill);
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .risk-high {
+            background: rgba(247, 37, 133, 0.15);
+            color: #f72585;
+        }
+
+        .risk-medium {
+            background: rgba(224, 176, 32, 0.15);
+            color: #e0b020;
+        }
+
+        .risk-low {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        /* Secondary screenshot mockups */
+        .screenshots-side {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-lg);
+        }
+
+        .mock-small {
+            min-height: 120px;
+            padding: var(--space-md);
+            border-radius: var(--radius-md);
+            background: var(--bg-elevated);
+        }
+
+        .mock-stat-row {
+            display: flex;
+            gap: var(--space-md);
+        }
+
+        .mock-stat-box {
+            flex: 1;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: var(--space-md);
+            text-align: center;
+        }
+
+        .mock-stat-num {
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            background: var(--gradient-text);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .mock-stat-lbl {
+            font-size: 0.62rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        /* =============================================
+       VIDEO SECTION
+    ============================================= */
+        #demo-video {
+            padding: var(--space-4xl) 0;
+        }
+
+        .video-wrapper {
+            position: relative;
+            margin-top: var(--space-2xl);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-card);
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+
+        .video-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: var(--radius-xl);
+            background: var(--gradient);
+            z-index: -1;
+            opacity: 0.5;
+        }
+
+        .video-chrome {
+            padding: var(--space-md) var(--space-xl);
+            background: var(--bg-elevated);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .video-chrome-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .video-iframe-wrap {
+            position: relative;
+            padding-bottom: 56.25%;
+            /* 16:9 */
+            height: 0;
+        }
+
+        .video-iframe-wrap iframe {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* =============================================
+       TECH STACK
+    ============================================= */
+        #tech-stack {
+            padding: var(--space-4xl) 0;
+        }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--space-md);
+            margin-top: var(--space-2xl);
+        }
+
+        .tech-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            text-align: center;
+            transition: border-color var(--transition), box-shadow var(--transition), transform 0.2s ease;
+            cursor: default;
+        }
+
+        .tech-card:hover {
+            border-color: var(--border-accent);
+            box-shadow: var(--shadow-glow);
+            transform: translateY(-3px);
+        }
+
+        .tech-emoji {
+            font-size: 1.8rem;
+            display: block;
+            margin-bottom: var(--space-sm);
+        }
+
+        .tech-name {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+        }
+
+        .tech-role {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: var(--space-xs);
+            font-weight: 500;
+        }
+
+        /* =============================================
+       CTA BANNER
+    ============================================= */
+        #cta-banner {
+            padding: var(--space-4xl) 0;
+        }
+
+        .cta-card {
+            background: linear-gradient(135deg,
+                    rgba(247, 37, 133, 0.08) 0%,
+                    rgba(155, 45, 202, 0.08) 50%,
+                    rgba(67, 97, 238, 0.08) 100%);
+            border: 1px solid var(--border-accent);
+            border-radius: var(--radius-xl);
+            padding: var(--space-3xl) var(--space-2xl);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .cta-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--gradient);
+            opacity: 0.6;
+        }
+
+        .cta-card h2 {
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            color: var(--text-primary);
+            margin-bottom: var(--space-md);
+        }
+
+        .cta-card p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: var(--space-xl);
+            max-width: 480px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-buttons {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-md);
+            flex-wrap: wrap;
+        }
+
+        /* =============================================
+       FOOTER
+    ============================================= */
+        footer {
+            border-top: 1px solid var(--border-color);
+            padding: var(--space-2xl) 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .footer-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: var(--space-lg);
+        }
+
+        .footer-copy {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .footer-links {
+            display: flex;
+            gap: var(--space-xl);
+            list-style: none;
+        }
+
+        .footer-links a {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: var(--text-primary);
+        }
+
+        /* =============================================
+       SCROLLBAR
+    ============================================= */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-elevated);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* =============================================
+       HAMBURGER MENU
+    ============================================= */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            gap: 5px;
+            width: 36px;
+            height: 36px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            padding: 8px;
+            transition: border-color var(--transition);
+        }
+
+        .hamburger:hover {
+            border-color: var(--border-accent);
+        }
+
+        .hamburger span {
+            display: block;
+            width: 100%;
+            height: 1.5px;
+            background: var(--text-primary);
+            border-radius: 2px;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            transform-origin: center;
+        }
+
+        .hamburger.open span:nth-child(1) {
+            transform: translateY(6.5px) rotate(45deg);
+        }
+
+        .hamburger.open span:nth-child(2) {
+            opacity: 0;
+            transform: scaleX(0);
+        }
+
+        .hamburger.open span:nth-child(3) {
+            transform: translateY(-6.5px) rotate(-45deg);
+        }
+
+        /* Mobile nav drawer */
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: color-mix(in srgb, var(--bg-primary) 97%, transparent);
+            backdrop-filter: blur(24px);
+            z-index: 99;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-xl);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .mobile-nav.open {
+            display: flex;
+            opacity: 1;
+        }
+
+        .mobile-nav a {
+            text-decoration: none;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            transition: color var(--transition);
+        }
+
+        .mobile-nav a:hover {
+            color: transparent;
+            background: var(--gradient-text);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .mobile-nav-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 36px;
+            height: 36px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            color: var(--text-primary);
+            font-size: 1.2rem;
+        }
+
+        /* =============================================
+       RESPONSIVE
+    ============================================= */
+        @media (max-width: 900px) {
+            .container {
+                padding: 0 var(--space-lg);
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .hamburger {
+                display: flex;
+            }
+
+            .model-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .model-card-wide {
+                flex-direction: column;
+            }
+
+            .perf-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .perf-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .arch-flow {
+                flex-direction: column;
+                gap: var(--space-sm);
+                padding-bottom: 0;
+            }
+
+            .arch-arrow {
+                transform: rotate(90deg);
+                justify-content: center;
+                height: 24px;
+            }
+
+            .arch-step {
+                flex: none;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .screenshots-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tech-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .hero-h1 {
+                font-size: 44px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-metrics {
+                gap: var(--space-lg);
+            }
+
+            .metric-divider {
+                display: none;
+            }
+
+            .perf-cards {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .tech-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .cta-card {
+                padding: var(--space-xl) var(--space-lg);
+            }
+        }
+
+        /* =============================================
+       GRADIENT ACCENT LINE utility
+    ============================================= */
+        .accent-line {
+            height: 3px;
+            width: 48px;
+            border-radius: var(--radius-pill);
+            background: var(--gradient);
+            margin: var(--space-lg) 0;
+        }
+
+        .logo-light {
+            display: none;
+        }
+
+        html[data-theme="light"] .logo-dark {
+            display: none;
+        }
+
+        html[data-theme="light"] .logo-light {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ==============================
+       NAVIGATION
+  ============================== -->
+    <nav id="navbar">
+        <div class="nav-inner">
+
+            <!-- Logo -->
+            <a href="/" class="logo">
+                <img src="{{ url_for('static', filename='images/dark-logo.png') }}" alt="Custora AI Logo"
+                    class="logo-dark" style="height:38px; width:auto;">
+                <img src="{{ url_for('static', filename='images/light-logo.png') }}" alt="Custora AI Logo"
+                    class="logo-light" style="height:38px; width:auto;">
+            </a>
+
+            <!-- Links -->
+            <ul class="nav-links">
+                <li><a href="#model-overview">Model</a></li>
+                <li><a href="#performance">Performance</a></li>
+                <li><a href="#architecture">Architecture</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#demo-video">Demo</a></li>
+            </ul>
+
+            <!-- Actions -->
+            <div class="nav-actions">
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme"></button>
+                <a href="#demo-video" class="btn btn-primary btn-sm">View Demo</a>
+                <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+
+        </div>
+    </nav>
+
+    <!-- Mobile Navigation Drawer -->
+    <nav class="mobile-nav" id="mobileNav">
+        <button class="mobile-nav-close" id="mobileNavClose" aria-label="Close menu">✕</button>
+        <a href="#model-overview" class="mobile-link">Model</a>
+        <a href="#performance" class="mobile-link">Performance</a>
+        <a href="#architecture" class="mobile-link">Architecture</a>
+        <a href="#features" class="mobile-link">Features</a>
+        <a href="#demo-video" class="mobile-link">Demo</a>
+        <a href="#demo-video" class="btn btn-primary" style="margin-top:8px">View Demo</a>
+    </nav>
+
+
+    <!-- ==============================
+       HERO SECTION
+  ============================== -->
+    <section id="hero">
+        <div class="container">
+            <div class="hero-content">
+
+                <div class="hero-badge fade-up">
+                    <div class="hero-badge-dot"></div>
+                    ML-Powered Customer Intelligence Platform
+                </div>
+
+                <h1 class="hero-h1 fade-up" style="transition-delay:0.1s">
+                    Predict Customer&nbsp;<span class="word-churn">Churn</span><br />
+                    Before It Happens.
+                </h1>
+
+                <p class="hero-sub fade-up" style="transition-delay:0.2s">
+                    Custora AI uses ensemble machine learning to detect at-risk customers, quantify revenue exposure,
+                    and generate AI-powered retention strategies — before churn impacts your bottom line.
+                </p>
+
+
+                <div class="hero-cta fade-up" style="transition-delay:0.3s">
+                    <a href="#demo-video" class="btn btn-primary">
+                        <span>View Demo</span>
+                        <span class="btn-icon">
+                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                <path d="M2 8L8 2M8 2H3M8 2V7" stroke="white" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                        </span>
+                    </a>
+                    <a href="#demo-video" class="btn btn-ghost">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2" />
+                            <path d="M6.5 5.5L10.5 8L6.5 10.5V5.5Z" fill="currentColor" />
+                        </svg>
+                        Watch Demo
+                    </a>
+                </div>
+
+                <!-- Metric Strip — 4 stats -->
+                <div class="hero-metrics fade-up" style="transition-delay:0.4s">
+                    <div class="hero-metric">
+                        <span class="hero-metric-value">75.7%</span>
+                        <span class="hero-metric-label">Model Accuracy</span>
+                    </div>
+                    <div class="metric-divider"></div>
+                    <div class="hero-metric">
+                        <span class="hero-metric-value">0.80</span>
+                        <span class="hero-metric-label">Recall</span>
+                    </div>
+                    <div class="metric-divider"></div>
+                    <div class="hero-metric">
+                        <span class="hero-metric-value">0.63</span>
+                        <span class="hero-metric-label">F1 Score</span>
+                    </div>
+                    <div class="metric-divider"></div>
+                    <div class="hero-metric">
+                        <span class="hero-metric-value">4L+</span>
+                        <span class="hero-metric-label">Annualized Revenue Protected</span>
+                    </div>
+                    <div class="metric-divider"></div>
+
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ==============================
+       MODEL OVERVIEW
+  ============================== -->
+    <section id="model-overview">
+        <div class="container">
+
+            <div class="fade-up">
+                <div class="section-label">ML Architecture</div>
+                <h2 class="section-title">Built on intelligence,<br />not guesswork.</h2>
+                <p class="section-sub">
+                    Custora AI is built on a calibrated Logistic Regression pipeline optimized for churn recall —
+                    ensuring high-risk customers are identified early with interpretable probability scores.
+                </p>
+            </div>
+
+            <div class="model-grid stagger-children fade-up">
+
+                <div class="model-card">
+                    <div class="model-card-icon"><i class="fa-solid fa-tree"></i></div>
+                    <h3>Random Forest Classifier</h3>
+                    <p>Aggregates hundreds of decision trees to capture complex, nonlinear behavioral signals. Robust
+                        against overfitting with high interpretability across customer segments.</p>
+                    <span class="tag">Primary Model</span>
+                </div>
+
+                <div class="model-card">
+                    <div class="model-card-icon"><i class="fa-solid fa-rocket"></i></div>
+                    <h3>XGBoost Gradient Boosting</h3>
+                    <p>Sequential ensemble learning that corrects prediction errors iteratively. Excels at capturing
+                        subtle interaction effects between usage frequency and contract variables.</p>
+                    <span class="tag">Ensemble Layer</span>
+                </div>
+
+                <div class="model-card">
+                    <div class="model-card-icon"><i class="fa-solid fa-chart-line"></i></div>
+                    <h3>Logistic Regression</h3>
+                    <p>Calibrated probability estimator providing interpretable risk scores. Serves as a transparent
+                        baseline for explainability reports delivered to customer success teams.</p>
+                    <span class="tag">Baseline + Calibration</span>
+                </div>
+
+                <div class="model-card">
+                    <div class="model-card-icon"><i class="fa-solid fa-link"></i></div>
+                    <h3>SHAP Explainability</h3>
+                    <p>SHapley Additive exPlanations surfaces the exact features driving each prediction — tenure,
+                        support tickets, plan tier — giving CS teams actionable, human-readable reasoning behind every
+                        churn score.</p>
+                    <span class="tag">Interpretability Layer</span>
+                </div>
+
+                <div class="model-card model-card-wide">
+                    <div class="model-card-icon" style="font-size:1.8rem"><i class="fa-solid fa-bolt"></i></div>
+                    <div>
+                        <h3>Weighted Voting Ensemble</h3>
+                        <p>All three models vote on each customer's churn probability, weighted by individual holdout
+                            validation performance. The result: a final churn score that outperforms any single model —
+                            with quantified confidence intervals surfaced directly in the PDF report.</p>
+                        <span class="tag">Production Pipeline</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ==============================
+       PERFORMANCE METRICS
+  ============================== -->
+    <section id="performance">
+        <div class="container">
+
+            <div class="fade-up">
+                <div class="section-label">Model Validation</div>
+                <h2 class="section-title">Metrics that<br />actually matter.</h2>
+                <p class="section-sub">Every model is validated on holdout test sets. We publish the real numbers — no
+                    cherry-picked benchmarks.</p>
+            </div>
+
+            <div class="perf-layout fade-up">
+
+                <!-- Bar metrics -->
+                <div class="perf-metrics" id="perf-bars">
+
+                    <div class="perf-metric-row">
+                        <div class="perf-metric-header">
+                            <span class="perf-metric-name">Overall Accuracy</span>
+                            <span class="perf-metric-value">75.5%</span>
+                        </div>
+                        <div class="perf-bar-track">
+                            <div class="perf-bar-fill" style="--target-width: 75.5%"></div>
+                        </div>
+                    </div>
+
+                    <div class="perf-metric-row">
+                        <div class="perf-metric-header">
+                            <span class="perf-metric-name">Precision (Churn Class)</span>
+                            <span class="perf-metric-value">52.8</span>
+                        </div>
+                        <div class="perf-bar-track">
+                            <div class="perf-bar-fill" style="--target-width: 52.8%"></div>
+                        </div>
+                    </div>
+
+                    <div class="perf-metric-row">
+                        <div class="perf-metric-header">
+                            <span class="perf-metric-name">Recall (Churn Detection)</span>
+                            <span class="perf-metric-value">80.5%</span>
+                        </div>
+                        <div class="perf-bar-track">
+                            <div class="perf-bar-fill" style="--target-width: 80.5%"></div>
+                        </div>
+                    </div>
+
+                    <div class="perf-metric-row">
+                        <div class="perf-metric-header">
+                            <span class="perf-metric-name">F1 Score</span>
+                            <span class="perf-metric-value">64.1%</span>
+                        </div>
+                        <div class="perf-bar-track">
+                            <div class="perf-bar-fill" style="--target-width: 64.1%"></div>
+                        </div>
+                    </div>
+
+
+
+                </div>
+
+                <!-- Big stat cards -->
+                <div class="perf-cards">
+                    <div class="perf-big-card">
+                        <span class="perf-big-num">75.5%</span>
+                        <div class="perf-big-label">Accuracy</div>
+                    </div>
+                    <div class="perf-big-card">
+                        <span class="perf-big-num">0.52</span>
+                        <div class="perf-big-label">Precision</div>
+                    </div>
+                    <div class="perf-big-card">
+                        <span class="perf-big-num">80.5%</span>
+                        <div class="perf-big-label">Recall</div>
+                    </div>
+                    <div class="perf-big-card">
+                        <span class="perf-big-num">0.641</span>
+                        <div class="perf-big-label">F1 Score</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ==============================
+       ARCHITECTURE FLOW
+  ============================== -->
+    <section id="architecture">
+        <div class="container">
+
+            <div class="fade-up">
+                <div class="section-label">System Design</div>
+                <h2 class="section-title">From raw CSV to<br />AI-generated strategy.</h2>
+                <p class="section-sub" style="margin-bottom:0">A six-stage pipeline that takes messy customer data and
+                    returns prioritized retention playbooks — in seconds.</p>
+            </div>
+
+            <div class="arch-flow stagger-children fade-up">
+
+                <div class="arch-step">
+                    <div class="arch-card">
+                        <div class="arch-icon"><i class="fa-solid fa-cloud-arrow-down"></i></div>
+                        <div class="arch-label">CSV Upload</div>
+                        <div class="arch-sub">User uploads telecom dataset</div>
+                    </div>
+                </div>
+
+                <div class="arch-arrow">
+                    <svg viewBox="0 0 20 20" fill="none">
+                        <path d="M4 10h12M12 5l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </div>
+
+                <div class="arch-step">
+                    <div class="arch-card">
+                        <div class="arch-icon"><i class="fa-solid fa-square-check"></i></div>
+                        <div class="arch-label">Column Validation</div>
+                        <div class="arch-sub">Check missing & extra features vs trained model</div>
+                    </div>
+                </div>
+
+                <div class="arch-arrow">
+                    <svg viewBox="0 0 20 20" fill="none">
+                        <path d="M4 10h12M12 5l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </div>
+
+                <div class="arch-step">
+                    <div class="arch-card">
+                        <div class="arch-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                        <div class="arch-label">Preprocessing Pipeline</div>
+                        <div class="arch-sub">Encoding, feature alignment, AvgChargePerMonth engineering</div>
+                    </div>
+                </div>
+
+                <div class="arch-arrow">
+                    <svg viewBox="0 0 20 20" fill="none">
+                        <path d="M4 10h12M12 5l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </div>
+
+                <div class="arch-step">
+                    <div class="arch-card">
+                        <div class="arch-icon"><i class="fa-solid fa-code-branch"></i></div>
+                        <div class="arch-label">Trained ML Model (.pkl)</div>
+                        <div class="arch-sub">Random Forest / XGBoost inference</div>
+                    </div>
+                </div>
+
+                <div class="arch-arrow">
+                    <svg viewBox="0 0 20 20" fill="none">
+                        <path d="M4 10h12M12 5l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </div>
+
+                <div class="arch-step">
+                    <div class="arch-card">
+                        <div class="arch-icon"><i class="fa-solid fa-chart-simple"></i></div>
+                        <div class="arch-label">Probability Scoring</div>
+                        <div class="arch-sub">Churn probability + confidence scores</div>
+                    </div>
+                </div>
+
+                <div class="arch-arrow">
+                    <svg viewBox="0 0 20 20" fill="none">
+                        <path d="M4 10h12M12 5l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </div>
+
+                <div class="arch-step">
+                    <div class="arch-card">
+                        <div class="arch-icon"><i class="fa-solid fa-arrows-to-circle"></i></div>
+                        <div class="arch-label">Risk Segmentation</div>
+                        <div class="arch-sub">High / Medium / Low risk tiers</div>
+                    </div>
+                </div>
+
+                <div class="arch-arrow">
+                    <svg viewBox="0 0 20 20" fill="none">
+                        <path d="M4 10h12M12 5l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </div>
+
+                <div class="arch-step">
+                    <div class="arch-card">
+                        <div class="arch-icon"><i class="fa-solid fa-money-bill-1-wave"></i></div>
+                        <div class="arch-label">Revenue Impact Engine</div>
+                        <div class="arch-sub">Revenue at risk + retention simulation</div>
+                    </div>
+                </div>
+
+                <div class="arch-arrow">
+                    <svg viewBox="0 0 20 20" fill="none">
+                        <path d="M4 10h12M12 5l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </div>
+
+                <div class="arch-step">
+                    <div class="arch-card">
+                        <div class="arch-icon"><i class="fa-solid fa-robot"></i></div>
+                        <div class="arch-label">AI Summary + PDF Report</div>
+                        <div class="arch-sub">Claude-generated executive insights</div>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ==============================
+       FEATURES
+  ============================== -->
+    <section id="features">
+        <div class="container">
+
+            <div class="fade-up">
+                <div class="section-label">Capabilities</div>
+                <h2 class="section-title">Everything your CS team<br />needs to stop churn.</h2>
+            </div>
+
+            <div class="features-grid stagger-children fade-up">
+
+                <div class="feature-card">
+                    <span class="feature-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <h3>Churn Probability Scoring</h3>
+                    <p>Every customer receives a calibrated probability score from 0–100, with confidence intervals
+                        derived from ensemble model agreement.</p>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-icon"><i class="fa-solid fa-chart-simple"></i></span>
+                    <h3>Feature Importance Analysis</h3>
+                    <p>Understand exactly which behavioral signals — tenure, plan type, support tickets — are driving
+                        each customer's churn risk.</p>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-icon"><i class="fa-solid fa-lightbulb"></i></span>
+                    <h3>AI Retention Strategies</h3>
+                    <p>Claude generates bespoke, customer-level retention playbooks based on individual risk profiles
+                        and historical success patterns.</p>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-icon"><i class="fa-solid fa-money-bill-1-wave"></i></span>
+                    <h3>Revenue Impact Engine</h3>
+                    <p>Quantifies the total lifetime value at risk across churn segments, helping CS teams prioritize
+                        interventions by ROI.</p>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-icon"><i class="fa-solid fa-file-pdf"></i></span>
+                    <h3>PDF Report Generation</h3>
+                    <p>One-click export of a boardroom-ready PDF with executive summary, model metrics, risk segments,
+                        and intervention roadmap.</p>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-icon"><i class="fa-solid fa-folder-open"></i></span>
+                    <h3>CSV Upload & Preprocessing</h3>
+                    <p>Drop any CRM export. The pipeline handles missing values, encodes categoricals, and normalizes
+                        features automatically.</p>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-icon"><i class="fa-solid fa-layer-group"></i></span>
+                    <h3>3-Tier Risk Segmentation</h3>
+                    <p>Customers automatically bucketed into High, Medium, and Low churn risk — with separate strategy
+                        tracks for each tier.</p>
+                </div>
+
+
+                <div class="feature-card">
+                    <span class="feature-icon"><i class="fa-brands fa-drupal"></i></span>
+                    <h3>Interactive Dashboard</h3>
+                    <p>Visual breakdown of churn distribution, model confidence, and segment composition — filterable
+                        and exportable by CS role.</p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ==============================
+       SCREENSHOTS
+  ============================== -->
+    <section id="screenshots">
+        <div class="container">
+
+            <div class="fade-up">
+                <div class="section-label">Product UI</div>
+                <h2 class="section-title">Built for speed.<br />Designed for clarity.</h2>
+                <p class="section-sub">A clean, information-dense interface that puts churn intelligence exactly where
+                    your team needs it.</p>
+            </div>
+
+            <div class="screenshots-grid fade-up">
+
+                <!-- Main screenshot: Customer Risk Dashboard -->
+                <div class="screenshot-frame">
+                    <div class="browser-chrome">
+                        <div class="chrome-dot"></div>
+                        <div class="chrome-dot"></div>
+                        <div class="chrome-dot"></div>
+                        <div class="chrome-bar"></div>
+                    </div>
+
+                    <div class="mock-dashboard">
+                        <div class="mock-header">
+                            <span class="mock-title">Customer Churn Dashboard</span>
+                            <span class="mock-badge">Live Model</span>
+                        </div>
+
+                        <!-- Fake chart -->
+                        <div class="mock-chart" id="mockChart">
+                            <div class="mock-bar mock-bar-dim" style="height:40%"></div>
+                            <div class="mock-bar mock-bar-grad" style="height:65%"></div>
+                            <div class="mock-bar mock-bar-dim" style="height:55%"></div>
+                            <div class="mock-bar mock-bar-grad" style="height:80%"></div>
+                            <div class="mock-bar mock-bar-dim" style="height:45%"></div>
+                            <div class="mock-bar mock-bar-grad" style="height:92%"></div>
+                            <div class="mock-bar mock-bar-dim" style="height:35%"></div>
+                            <div class="mock-bar mock-bar-grad" style="height:70%"></div>
+                            <div class="mock-bar mock-bar-dim" style="height:58%"></div>
+                            <div class="mock-bar mock-bar-grad" style="height:85%"></div>
+                            <div class="mock-bar mock-bar-dim" style="height:42%"></div>
+                            <div class="mock-bar mock-bar-grad" style="height:76%"></div>
+                        </div>
+
+                        <!-- Customer rows -->
+                        <div class="mock-rows">
+                            <div class="mock-row">
+                                <div class="mock-avatar"></div>
+                                <div class="mock-row-info">
+                                    <div class="mock-row-name"></div>
+                                    <div class="mock-row-sub"></div>
+                                </div>
+                                <span class="mock-risk risk-high">High 94%</span>
+                            </div>
+                            <div class="mock-row">
+                                <div class="mock-avatar" style="opacity:0.5"></div>
+                                <div class="mock-row-info">
+                                    <div class="mock-row-name" style="width:60px"></div>
+                                    <div class="mock-row-sub" style="width:40px"></div>
+                                </div>
+                                <span class="mock-risk risk-medium">Med 61%</span>
+                            </div>
+                            <div class="mock-row">
+                                <div class="mock-avatar" style="opacity:0.35"></div>
+                                <div class="mock-row-info">
+                                    <div class="mock-row-name" style="width:90px"></div>
+                                    <div class="mock-row-sub" style="width:55px"></div>
+                                </div>
+                                <span class="mock-risk risk-low">Low 18%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Side screenshots -->
+                <div class="screenshots-side">
+
+                    <!-- Model metrics card -->
+                    <div class="screenshot-frame">
+                        <div class="browser-chrome">
+                            <div class="chrome-dot"></div>
+                            <div class="chrome-dot"></div>
+                            <div class="chrome-dot"></div>
+                            <div class="chrome-bar"></div>
+                        </div>
+                        <div class="mock-small">
+                            <div class="mock-header" style="margin-bottom: var(--space-md)">
+                                <span class="mock-title" style="font-size:0.78rem">Model Performance</span>
+                                <span class="mock-badge">XGBoost</span>
+                            </div>
+                            <div class="mock-stat-row">
+                                <div class="mock-stat-box">
+                                    <div class="mock-stat-num">94.2%</div>
+                                    <div class="mock-stat-lbl">Accuracy</div>
+                                </div>
+                                <div class="mock-stat-box">
+                                    <div class="mock-stat-num">0.91</div>
+                                    <div class="mock-stat-lbl">AUC</div>
+                                </div>
+                                <div class="mock-stat-box">
+                                    <div class="mock-stat-num">0.87</div>
+                                    <div class="mock-stat-lbl">F1</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Strategy card -->
+                    <div class="screenshot-frame">
+                        <div class="browser-chrome">
+                            <div class="chrome-dot"></div>
+                            <div class="chrome-dot"></div>
+                            <div class="chrome-dot"></div>
+                            <div class="chrome-bar"></div>
+                        </div>
+                        <div class="mock-small" style="min-height: 140px;">
+                            <div class="mock-header" style="margin-bottom: var(--space-md)">
+                                <span class="mock-title" style="font-size:0.78rem">AI Strategy · Segment A</span>
+                                <span class="mock-badge">Claude</span>
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:6px;">
+                                <div
+                                    style="height:7px;background:var(--text-muted);opacity:0.18;border-radius:3px;width:100%">
+                                </div>
+                                <div
+                                    style="height:7px;background:var(--text-muted);opacity:0.14;border-radius:3px;width:85%">
+                                </div>
+                                <div
+                                    style="height:7px;background:var(--text-muted);opacity:0.12;border-radius:3px;width:92%">
+                                </div>
+                                <div
+                                    style="height:7px;background:var(--text-muted);opacity:0.1;border-radius:3px;width:70%">
+                                </div>
+                            </div>
+                            <div style="margin-top:var(--space-md);display:flex;gap:var(--space-sm);">
+                                <span class="mock-risk risk-high" style="font-size:0.62rem">Proactive Outreach</span>
+                                <span class="mock-risk risk-low" style="font-size:0.62rem">Loyalty Offer</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ==============================
+       DEMO VIDEO
+  ============================== -->
+    <section id="demo-video">
+        <div class="container">
+
+            <div class="fade-up" style="text-align:center">
+                <div class="section-label" style="justify-content:center">Live Demo</div>
+                <h2 class="section-title">See it in action.</h2>
+                <p class="section-sub" style="margin: var(--space-md) auto 0; text-align:center">
+                    Watch a full walkthrough of the Custora AI pipeline — from CSV upload to AI-generated PDF retention
+                    report.
+                </p>
+            </div>
+
+            <div class="video-wrapper fade-up">
+                <div class="video-chrome">
+                    <div class="video-chrome-dots">
+                        <div class="chrome-dot"></div>
+                        <div class="chrome-dot"></div>
+                        <div class="chrome-dot"></div>
+                    </div>
+                </div>
+                <div class="video-iframe-wrap">
+                    <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1&color=white"
+                        title="Custora AI Demo"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen>
+                    </iframe>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- ==============================
+       TECH STACK
+  ============================== -->
+    <section id="tech-stack">
+        <div class="container">
+
+            <div class="fade-up">
+                <div class="section-label">Tech Stack</div>
+                <h2 class="section-title">Production-grade tools.<br />No shortcuts.</h2>
+                <p class="section-sub">Custora AI is built on the same stack used by leading ML teams — mature,
+                    battle-tested, and scalable.</p>
+            </div>
+
+            <div class="tech-grid stagger-children fade-up">
+                <div class="tech-card">
+                    <span class="tech-emoji"><i class="fa-brands fa-python"></i></span>
+                    <div class="tech-name">Python 3.11</div>
+                    <div class="tech-role">Core runtime</div>
+                </div>
+                <div class="tech-card">
+                    <span class="tech-emoji"><i class="fa-solid fa-flask"></i></span>
+                    <div class="tech-name">Flask</div>
+                    <div class="tech-role">API backend</div>
+                </div>
+                <div class="tech-card">
+                    <span class="tech-emoji"><i class="fa-solid fa-microscope"></i></span>
+                    <div class="tech-name">scikit-learn</div>
+                    <div class="tech-role">ML pipeline</div>
+                </div>
+                <div class="tech-card">
+                    <span class="tech-emoji"><i class="fa-solid fa-bolt"></i></span>
+                    <div class="tech-name">XGBoost</div>
+                    <div class="tech-role">Gradient boosting</div>
+                </div>
+                <div class="tech-card">
+                    <span class="tech-emoji"><i class="fa-solid fa-paw"></i></span>
+                    <div class="tech-name">Pandas</div>
+                    <div class="tech-role">Data processing</div>
+                </div>
+                <div class="tech-card">
+                    <span class="tech-emoji"><i class="fa-solid fa-arrow-down-9-1"></i></span>
+                    <div class="tech-name">NumPy</div>
+                    <div class="tech-role">Numerical ops</div>
+                </div>
+                <div class="tech-card">
+                    <span class="tech-emoji"><i class="fa-solid fa-chart-bar"></i></span>
+                    <div class="tech-name">Matplotlib</div>
+                    <div class="tech-role">Visualizations</div>
+                </div>
+                <div class="tech-card">
+                    <span class="tech-emoji"><i class="fa-brands fa-aws"></i></span>
+                    <div class="tech-name">Claude API</div>
+                    <div class="tech-role">AI strategies</div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- ==============================
+       CTA BANNER
+  ============================== -->
+    <section id="cta-banner">
+        <div class="container">
+            <div class="cta-card fade-up">
+                <h2>Stop losing revenue<br />to <span class="gradient-text">preventable churn.</span></h2>
+                <p>Upload your customer data and get AI-powered retention strategies in under 60 seconds.</p>
+                <div class="cta-buttons">
+                    <a href="#demo-video" class="btn btn-primary">
+                        Get Started Free
+                        <span class="btn-icon">
+                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                <path d="M2 8L8 2M8 2H3M8 2V7" stroke="white" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                        </span>
+                    </a>
+                    <a href="#demo-video" class="btn btn-ghost">Watch the Demo</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ==============================
+       FOOTER
+  ============================== -->
+    <footer>
+        <div class="container">
+            <div class="footer-inner">
+                <a href="/" class="logo">
+                    <a href="/" class="logo">
+                        <img src="{{ url_for('static', filename='images/dark-logo.png') }}" alt="Custora AI Logo"
+                            class="logo-dark" style="height:38px; width:auto;">
+                        <img src="{{ url_for('static', filename='images/light-logo.png') }}" alt="Custora AI Logo"
+                            class="logo-light" style="height:38px; width:auto;">
+                    </a>
+
+                    <p class="footer-copy">© 2026 Custora AI. Built with ML precision.</p>
+
+                    <ul class="footer-links">
+                        <li><a href="#">Privacy</a></li>
+                        <li><a href="#">Terms</a></li>
+                        <li><a href="#">GitHub</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+            </div>
+        </div>
+    </footer>
+
+
+    <!-- =============================================
+       JAVASCRIPT
+  ============================================= -->
+    <script>
+        /* ── Hamburger / Mobile Nav ── */
+        const hamburgerBtn = document.getElementById('hamburgerBtn');
+        const mobileNav = document.getElementById('mobileNav');
+        const mobileNavClose = document.getElementById('mobileNavClose');
+
+        function openMobileNav() {
+            mobileNav.classList.add('open');
+            hamburgerBtn.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMobileNav() {
+            mobileNav.classList.remove('open');
+            hamburgerBtn.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        hamburgerBtn.addEventListener('click', openMobileNav);
+        mobileNavClose.addEventListener('click', closeMobileNav);
+
+        // Close on any mobile link click
+        document.querySelectorAll('.mobile-link, .mobile-nav .btn').forEach(link => {
+            link.addEventListener('click', closeMobileNav);
+        });
+
+        // Close on backdrop click
+        mobileNav.addEventListener('click', (e) => {
+            if (e.target === mobileNav) closeMobileNav();
+        });
+
+
+        /* ── Theme toggle ── */
+        const html = document.documentElement;
+        const toggle = document.getElementById('themeToggle');
+
+        // Detect system preference on first load
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const savedTheme = localStorage.getItem('custora-theme');
+        if (savedTheme) {
+            html.setAttribute('data-theme', savedTheme);
+        } else {
+            html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+        }
+
+        toggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('custora-theme', next);
+        });
+
+
+        /* ── Navbar scroll state ── */
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            navbar.classList.toggle('scrolled', window.scrollY > 24);
+        }, { passive: true });
+
+
+        /* ── Intersection Observer: fade-up + stagger ── */
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+
+                    // Trigger performance bar animations
+                    if (entry.target.id === 'perf-bars' || entry.target.closest?.('#perf-bars')) {
+                        animatePerfBars();
+                    }
+
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+        document.querySelectorAll('.fade-up, .stagger-children').forEach(el => {
+            observer.observe(el);
+        });
+
+
+        /* ── Performance bar animation ── */
+        let perfAnimated = false;
+        function animatePerfBars() {
+            if (perfAnimated) return;
+            perfAnimated = true;
+            document.querySelectorAll('.perf-bar-fill').forEach((bar, i) => {
+                setTimeout(() => {
+                    bar.classList.add('animated');
+                }, i * 120);
+            });
+        }
+
+        // Also trigger bars when the perf section becomes visible
+        const perfSection = document.getElementById('performance');
+        const perfObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                setTimeout(animatePerfBars, 300);
+                perfObserver.disconnect();
+            }
+        }, { threshold: 0.2 });
+        if (perfSection) perfObserver.observe(perfSection);
+
+
+        /* ── Smooth anchor scroll (offset for fixed nav) ── */
+        document.querySelectorAll('a[href^="#"]').forEach(a => {
+            a.addEventListener('click', e => {
+                const target = document.querySelector(a.getAttribute('href'));
+                if (!target) return;
+                e.preventDefault();
+                const offset = 80;
+                const top = target.getBoundingClientRect().top + window.scrollY - offset;
+                window.scrollTo({ top, behavior: 'smooth' });
+            });
+        });
+    </script>
+
+</body>
+
+</html>

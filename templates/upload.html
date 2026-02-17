@@ -4,8 +4,69 @@
 <h2>Upload Customer Data</h2>
 
 <form method="POST" enctype="multipart/form-data">
-    <input class="form-control mb-3" type="file" name="file" required>
-    <button class="btn btn-primary">Run Prediction</button>
+    <input type="file" name="file" required>
+    <input type="hidden" name="action" value="preview">
+    <button class="btn btn-primary mt-2">Preview Dataset</button>
 </form>
+
+
+{% if file_uploaded %}
+
+<hr>
+
+<h5>Uploaded Dataset Preview (First 5 Rows)</h5>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-sm">
+        <thead>
+            <tr>
+                {% for col in columns %}
+                <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in preview %}
+            <tr>
+                {% for col in columns %}
+                <td>{{ row[col] }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<hr>
+
+<h5>Column Validation</h5>
+
+<p><strong>Model Trained On:</strong></p>
+<p class="text-muted">{{ model_columns }}</p>
+
+{% if missing_cols %}
+<p class="text-danger"><strong>Missing Columns:</strong> {{ missing_cols }}</p>
+{% endif %}
+
+{% if extra_cols %}
+<p class="text-warning"><strong>Extra Columns:</strong> {{ extra_cols }}</p>
+{% endif %}
+
+{% if not missing_cols %}
+
+<div class="alert alert-success">
+Dataset is compatible with model.
+</div>
+
+<form method="POST">
+    <input type="hidden" name="action" value="predict">
+    <input type="hidden" name="filename" value="{{ filename }}">
+    <button class="btn btn-success">Run Prediction</button>
+</form>
+
+{% endif %}
+
+{% endif %}
+
 
 {% endblock %}

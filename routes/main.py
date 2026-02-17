@@ -1,9 +1,10 @@
 from flask import Blueprint, render_template, request, send_file, jsonify
 from flask_login import login_required
-from services.prediction import predict_churn
+from services.prediction import predict_churn, get_model_columns
 from services.ai_summary import generate_ai_summary
 from services.pdf_report import generate_pdf_report
 import os
+import pandas as pd
 
 main_bp = Blueprint("main", __name__)
 
@@ -24,39 +25,95 @@ def dashboard():
 @main_bp.route("/upload", methods=["GET", "POST"])
 @login_required
 def upload():
-    if request.method == "POST":
-        file = request.files["file"]
 
-        if file.filename == "":
-            return "No file selected"
+    if request.method == "POST":
+
+        action = request.form.get("action")
 
         if not os.path.exists(UPLOAD_FOLDER):
             os.makedirs(UPLOAD_FOLDER)
 
-        filepath = os.path.join(UPLOAD_FOLDER, file.filename)
-        file.save(filepath)
+        # ================= STEP 1: PREVIEW =================
+        if action == "preview":
 
-        result_df, _ = predict_churn(filepath)
+            file = request.files["file"]
 
-        full_result_path = os.path.join(UPLOAD_FOLDER, "full_results.csv")
-        result_df.to_csv(full_result_path, index=False)
+            if file.filename == "":
+                return "No file selected"
 
-        high = int((result_df["Risk_Level"] == "High Risk").sum())
-        medium = int((result_df["Risk_Level"] == "Medium Risk").sum())
-        low = int((result_df["Risk_Level"] == "Low Risk").sum())
-        total = int(len(result_df))
+            filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+            file.save(filepath)
 
-        preview_df = result_df.head(10)
+            df = pd.read_csv(filepath)
+            uploaded_columns = list(df.columns)
 
-        return render_template(
-            "results.html",
-            tables=preview_df.to_dict(orient="records"),
-            columns=list(preview_df.columns),
-            high=high,
-            medium=medium,
-            low=low,
-            total=total
-        )
+            # Get model expected columns
+            model_columns = get_model_columns()
+
+            # Remove engineered + internally handled columns
+            ignored_columns = ["AvgChargePerMonth", "customerID", "Churn"]
+
+            model_columns_cleaned = [
+                col for col in model_columns if col not in ignored_columns
+            ]
+
+            missing_cols = list(set(model_columns_cleaned) - set(uploaded_columns))
+            extra_cols = list(set(uploaded_columns) - set(model_columns_cleaned))
+
+            preview_df = df.head(5)
+
+            return render_template(
+                "upload.html",
+                preview=preview_df.to_dict(orient="records"),
+                columns=uploaded_columns,
+                model_columns=model_columns_cleaned,
+                missing_cols=missing_cols,
+                extra_cols=extra_cols,
+                filename=file.filename,
+                file_uploaded=True
+            )
+
+        # ================= STEP 2: PREDICT =================
+        elif action == "predict":
+
+            filename = request.form.get("filename")
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+
+            result_df, top_features, metrics = predict_churn(filepath)
+
+            full_result_path = os.path.join(UPLOAD_FOLDER, "full_results.csv")
+            result_df.to_csv(full_result_path, index=False)
+
+            high = int((result_df["Risk_Level"] == "High Risk").sum())
+            medium = int((result_df["Risk_Level"] == "Medium Risk").sum())
+            low = int((result_df["Risk_Level"] == "Low Risk").sum())
+            total = int(len(result_df))
+
+            avg_monthly_revenue = result_df["MonthlyCharges"].mean()
+            revenue_at_risk = round(high * avg_monthly_revenue, 2)
+
+            retention_rate = 0.30
+            saved_customers = int(high * retention_rate)
+            estimated_revenue_saved = round(saved_customers * avg_monthly_revenue, 2)
+            annual_revenue_saved = round(estimated_revenue_saved * 12, 2)
+
+            preview_df = result_df.head(10)
+
+            return render_template(
+                "results.html",
+                tables=preview_df.to_dict(orient="records"),
+                columns=list(preview_df.columns),
+                high=high,
+                medium=medium,
+                low=low,
+                total=total,
+                metrics=metrics,
+                saved_customers=saved_customers,
+                revenue_saved=estimated_revenue_saved,
+                annual_revenue_saved=annual_revenue_saved,
+                revenue_at_risk=revenue_at_risk,
+                avg_monthly_revenue=round(avg_monthly_revenue, 2)
+            )
 
     return render_template("upload.html")
 

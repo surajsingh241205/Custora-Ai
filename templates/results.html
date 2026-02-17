@@ -47,6 +47,141 @@
 
 </div>
 
+{% if metrics %}
+
+<div class="card shadow-sm p-4 mb-4">
+
+    <h5 class="mb-3">Model Performance</h5>
+
+    <div class="row text-center mb-3">
+
+        <div class="col-md-3">
+            <div class="border rounded p-3">
+                <small class="text-muted">Accuracy</small>
+                <h5>{{ metrics.accuracy }}</h5>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="border rounded p-3">
+                <small class="text-muted">Precision</small>
+                <h5>{{ metrics.precision }}</h5>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="border rounded p-3">
+                <small class="text-muted">Recall</small>
+                <h5>{{ metrics.recall }}</h5>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="border rounded p-3">
+                <small class="text-muted">F1 Score</small>
+                <h5>{{ metrics.f1 }}</h5>
+            </div>
+        </div>
+
+    </div>
+
+    <h6 class="mb-2">Confusion Matrix</h6>
+
+    <table class="table table-bordered text-center">
+        {% for row in metrics.conf_matrix %}
+        <tr>
+            {% for val in row %}
+            <td>{{ val }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+
+</div>
+
+{% endif %}
+
+
+<!-- ================= BUSINESS IMPACT ================= -->
+
+<div class="card shadow-sm p-4 mb-4">
+
+    <h5 class="mb-3">Business Impact Estimation</h5>
+
+    <div class="row text-center">
+
+        <div class="col-md-6">
+            <div class="border rounded p-3">
+                <small class="text-muted">Estimated Customers Saved</small>
+                <h4>{{ saved_customers }}</h4>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="border rounded p-3">
+                <small class="text-muted">Estimated Monthly Revenue Saved</small>
+                <h4>₹ {{ revenue_saved }}</h4>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+    <div class="border rounded p-3">
+        <small class="text-muted">Estimated Annual Revenue Protected</small>
+        <h4>₹ {{ annual_revenue_saved }}</h4>
+    </div>
+</div>
+
+<div class="col-md-6">
+    <div class="border rounded p-3">
+        <small class="text-muted">Revenue At Risk (Monthly)</small>
+        <h4 class="text-danger">₹ {{ revenue_at_risk }}</h4>
+    </div>
+</div>
+    </div>
+
+    <p class="text-muted mt-3">
+        Based on assumed 30% retention success rate for high-risk customers.
+    </p>
+
+</div>
+
+<hr>
+
+<h6 class="mt-3">Adjust Retention Success Rate</h6>
+
+<div class="mb-3">
+    <input type="range"
+           min="10"
+           max="60"
+           value="30"
+           id="retentionSlider"
+           class="form-range">
+</div>
+
+<p>
+Retention Rate:
+<strong><span id="retentionValue">30</span>%</strong>
+</p>
+
+<div class="row text-center">
+
+    <div class="col-md-6">
+        <div class="border rounded p-3">
+            <small class="text-muted">Projected Customers Saved</small>
+            <h4 id="dynamicSaved">{{ saved_customers }}</h4>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="border rounded p-3">
+            <small class="text-muted">Projected Monthly Revenue Saved</small>
+            <h4 id="dynamicRevenue">₹ {{ revenue_saved }}</h4>
+        </div>
+    </div>
+
+</div>
+
+
 <!-- ================= CHARTS ================= -->
 
 <div class="row mb-5">
@@ -84,6 +219,7 @@
         Click the button to generate AI-driven insights.
     </div>
 
+    
 </div>
 <button id="downloadPDF" class="btn btn-outline-primary btn-sm mt-3">
     Download PDF Report
@@ -232,6 +368,26 @@ document.getElementById("downloadPDF").addEventListener("click", async function(
         a.click();
     });
 });
+
+const slider = document.getElementById("retentionSlider");
+const retentionValue = document.getElementById("retentionValue");
+
+const highRisk = {{ high }};
+const avgRevenue = {{ avg_monthly_revenue }};
+
+slider.addEventListener("input", function () {
+
+    let rate = slider.value;
+    retentionValue.innerText = rate;
+
+    let saved = Math.round(highRisk * (rate / 100));
+    let revenue = (saved * avgRevenue).toFixed(2);
+
+    document.getElementById("dynamicSaved").innerText = saved;
+    document.getElementById("dynamicRevenue").innerText = "₹ " + revenue;
+});
+
+
 
 </script>
 
